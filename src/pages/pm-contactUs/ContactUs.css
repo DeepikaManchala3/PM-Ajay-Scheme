@@ -1,0 +1,128 @@
+.contact-us-container {
+    padding: 1rem;
+    width: 100%;
+    /* Removed max-width and background color as requested to remove "container" look */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Section Title with Reference Line Animation */
+.section-title-wrapper {
+    text-align: center;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.section-title {
+    color: #333;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin: 0 0 10px 0;
+}
+
+/* The Reference Line (Static) */
+.title-underline {
+    position: relative;
+    width: 100px;
+    /* Fixed width for the line */
+    height: 3px;
+    background-color: #e0e0e0;
+    /* Light gray reference line */
+    border-radius: 2px;
+    overflow: hidden;
+    /* Keeps the moving part inside */
+}
+
+/* The Moving Part */
+.title-underline::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    /* Size of the moving segment */
+    height: 100%;
+    background-color: #000080;
+    /* Blue moving line */
+    animation: moveOnLine 2s linear infinite alternate;
+}
+
+@keyframes moveOnLine {
+    0% {
+        left: 0;
+    }
+
+    100% {
+        left: 70%;
+        /* 100% - width of the moving segment */
+    }
+}
+
+/* Layout Grid */
+.support-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Table Styling - "Lengthed like slim" */
+.contact-table {
+    width: 100%;
+    /* Full width */
+    border-collapse: collapse;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dee2e6;
+    margin-bottom: 2rem;
+}
+
+.contact-table th {
+    background-color: #000080;
+    color: white;
+    padding: 8px 12px;
+    /* Reduced padding for "slim" look */
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid #000080;
+    font-size: 0.9rem;
+}
+
+.contact-table td {
+    padding: 8px 12px;
+    /* Reduced padding for "slim" look */
+    border: 1px solid #dee2e6;
+    color: #333;
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.contact-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.contact-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Highlight Text */
+.contact-info-highlight {
+    color: #ff9800;
+    font-weight: 500;
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .support-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-table {
+        display: block;
+        overflow-x: auto;
+    }
+}

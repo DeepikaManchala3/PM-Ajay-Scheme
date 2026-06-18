@@ -1,0 +1,316 @@
+/* PM-AJAY Dashboard Styles - Final Fix */
+
+/* Global Reset for Dashboard Context */
+.dashboard-layout {
+    box-sizing: border-box;
+    /* Exact height calculation for Dashboard Header */
+    --header-height: 178px;
+}
+
+.dashboard-layout * {
+    box-sizing: border-box;
+}
+
+/* Dashboard Header Component - Force Full Width */
+.dashboard-header-component {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1020;
+    background-color: #FFFFFF;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Ministry Dashboard Header Logout Button - Pill Shape Outline */
+.dashboard-header-component .logout-link {
+    color: #DC2626 !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid #DC2626 !important;
+    border-radius: 9999px !important;
+    /* Pill shape */
+    padding: 0.5rem 1.25rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.dashboard-header-component .logout-link:hover,
+.dashboard-header-component .logout-link:focus {
+    background-color: #FEE2E2 !important;
+    /* Very light red tint */
+    color: #DC2626 !important;
+    border-color: #DC2626 !important;
+    outline: none !important;
+}
+
+.dashboard-header-component .logout-link:active {
+    background-color: #FECACA !important;
+    /* Slightly darker pale red */
+    border: 2px solid #DC2626 !important;
+    /* Thicker border */
+    transform: translateY(1px);
+}
+
+/* Dashboard Sidebar - Perfectly Aligned */
+.dashboard-sidebar {
+    width: 260px;
+    background-color: #ffffff !important;
+    /* Force light grey */
+    color: #111827;
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    padding: 0;
+    margin: 0;
+    z-index: 1000;
+    border-right: 1px solid #D1D5DB;
+    box-shadow: none !important;
+    transition: transform 0.3s ease-in-out;
+}
+
+.dashboard-sidebar.closed {
+    transform: translateX(-100%);
+}
+
+/* Profile Section - Horizontal Layout */
+.dashboard-sidebar-profile {
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: #FFFFFF;
+    border-bottom: 2px solid #D1D5DB;
+    margin: 0;
+}
+
+.profile-avatar-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #FF9933;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    object-fit: cover;
+}
+
+.profile-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.profile-name {
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-email {
+    color: #4B5563;
+    font-size: 0.875rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Navigation Container */
+.dashboard-nav-container {
+    padding: 0.75rem 0;
+    margin: 0;
+}
+
+/* Navigation List */
+.dashboard-sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dashboard-sidebar-item {
+    margin-bottom: 0;
+    padding: 0;
+}
+
+/* Navigation Links */
+.dashboard-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    color: #111827;
+    text-decoration: none;
+    transition: all 200ms ease-in-out;
+    font-size: 1rem;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+    margin: 0;
+}
+
+/* Hover State */
+.dashboard-sidebar-link:hover {
+    color: #FF9933;
+    background-color: rgba(255, 153, 51, 0.05);
+    text-decoration: none;
+}
+
+/* Active State - Outline Only */
+.dashboard-sidebar-link.active {
+    color: #FF9933;
+    background-color: rgba(255, 153, 51, 0.08);
+    border-left: 3px solid #FF9933;
+    font-weight: 300;
+}
+
+/* Logout Button - Red Text */
+.dashboard-sidebar-link.logout-item {
+    color: #DC2626;
+    margin-top: 0.5rem;
+}
+
+.dashboard-sidebar-link.logout-item:hover {
+    color: #B91C1C;
+    background-color: rgba(220, 38, 38, 0.05);
+    border-color: #DC2626 !important;
+
+}
+
+/* Icon Styling */
+.sidebar-icon {
+    font-size: 1.25rem;
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sidebar-label {
+    flex: 1;
+    text-align: left;
+}
+
+/* Dashboard Main Content - Pure White */
+.dashboard-main {
+    flex: 1;
+    margin-left: 260px;
+    /* Matches sidebar width */
+    margin-top: var(--header-height);
+    padding: 1.5rem;
+    background-color: #FFFFFF !important;
+    min-height: calc(100vh - var(--header-height));
+    overflow-y: auto;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+.dashboard-layout.sidebar-closed .dashboard-main {
+    margin-left: 0;
+}
+
+/* Stat Cards Styling */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-left-width: 5px;
+    border-left-style: solid;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card-header {
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.stat-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+/* Create tinted background for icon using currentColor */
+.stat-card-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: currentColor;
+    opacity: 0.1;
+    border-radius: inherit;
+    z-index: -1;
+}
+
+.stat-card-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+}
+
+.stat-card-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: auto;
+}
+
+.stat-card-trend.positive {
+    color: #10B981;
+}
+
+.stat-card-trend.negative {
+    color: #EF4444;
+}

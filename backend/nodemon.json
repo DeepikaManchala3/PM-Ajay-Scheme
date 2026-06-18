@@ -1,0 +1,12 @@
+{
+    "ignore": [
+        "services/reminder_state.json"
+    ],
+    "watch": [
+        "server.js",
+        "services/",
+        "controllers/",
+        "routes/"
+    ],
+    "ext": "js,json"
+}

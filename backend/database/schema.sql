@@ -1,0 +1,435 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.agency_assignments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  created_at timestamp with time zone DEFAULT now(),
+  name text NOT NULL,
+  email text,
+  phone text,
+  agency_officer text,
+  work_assigned text,
+  status text DEFAULT 'Active'::text,
+  implementing_agency_id uuid,
+  CONSTRAINT agency_assignments_pkey PRIMARY KEY (id),
+  CONSTRAINT agency_assignments_implementing_agency_id_fkey FOREIGN KEY (implementing_agency_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.approved_projects (
+  id integer NOT NULL DEFAULT nextval('approved_projects_id_seq'::regclass),
+  proposal_id integer UNIQUE,
+  state_name character varying NOT NULL,
+  district_name character varying,
+  project_name character varying NOT NULL,
+  component character varying NOT NULL,
+  total_amount numeric NOT NULL,
+  minimum_allocation numeric NOT NULL,
+  amount_released numeric DEFAULT 0,
+  remaining_fund numeric NOT NULL,
+  bank_account_number character varying,
+  approved_by character varying,
+  approved_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  status character varying DEFAULT 'APPROVED'::character varying,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  allocated_amount numeric DEFAULT 0,
+  released_amount numeric DEFAULT 0,
+  estimated_cost numeric DEFAULT 0,
+  CONSTRAINT approved_projects_pkey PRIMARY KEY (id),
+  CONSTRAINT approved_projects_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.district_proposals(id)
+);
+CREATE TABLE public.centre_admin (
+  id uuid NOT NULL,
+  full_name text NOT NULL,
+  designation text DEFAULT 'Centre Administrator'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT centre_admin_pkey PRIMARY KEY (id),
+  CONSTRAINT centre_admin_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.circulars (
+  id bigint NOT NULL DEFAULT nextval('circulars_id_seq'::regclass),
+  title text NOT NULL,
+  description text,
+  type text NOT NULL CHECK (type = ANY (ARRAY['notification'::text, 'circular'::text, 'order'::text, 'guideline'::text])),
+  category text CHECK (category = ANY (ARRAY['Adarsh Gram'::text, 'GIA'::text, 'Hostel'::text, 'General'::text])),
+  file_url text NOT NULL,
+  file_type text CHECK (file_type = ANY (ARRAY['pdf'::text, 'image'::text, 'document'::text])),
+  file_name text NOT NULL,
+  file_size integer,
+  issued_by text DEFAULT 'Ministry of Social Justice & Empowerment'::text,
+  issued_date date DEFAULT CURRENT_DATE,
+  is_active boolean DEFAULT true,
+  priority text DEFAULT 'medium'::text CHECK (priority = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])),
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT circulars_pkey PRIMARY KEY (id),
+  CONSTRAINT circulars_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.district_admins (
+  id uuid NOT NULL,
+  district_id integer UNIQUE,
+  state_id integer,
+  full_name text NOT NULL,
+  designation text DEFAULT 'District Administrator'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT district_admins_pkey PRIMARY KEY (id),
+  CONSTRAINT district_admins_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id),
+  CONSTRAINT district_admins_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.districts(id),
+  CONSTRAINT district_admins_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.states(id)
+);
+CREATE TABLE public.district_assignment (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  admin_name text NOT NULL,
+  district_name text NOT NULL,
+  phone_no text NOT NULL,
+  email text NOT NULL UNIQUE,
+  username text UNIQUE,
+  password text,
+  bank_account_number text,
+  status text DEFAULT 'Active'::text,
+  CONSTRAINT district_assignment_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.district_proposals (
+  district_id text NOT NULL,
+  project_name text NOT NULL,
+  component text NOT NULL,
+  estimated_cost numeric NOT NULL,
+  description text,
+  documents jsonb DEFAULT '[]'::jsonb,
+  status text DEFAULT 'SUBMITTED'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  reject_reason text,
+  remarks text,
+  approved_by uuid,
+  approved_at timestamp with time zone,
+  allocated_amount numeric DEFAULT 0,
+  released_amount numeric DEFAULT 0,
+  phone_number character varying,
+  implementing_agency_id uuid,
+  CONSTRAINT district_proposals_pkey PRIMARY KEY (id),
+  CONSTRAINT district_proposals_implementing_agency_id_fkey FOREIGN KEY (implementing_agency_id) REFERENCES public.implementing_agencies(id)
+);
+CREATE TABLE public.districts (
+  id integer NOT NULL DEFAULT nextval('districts_id_seq'::regclass),
+  state_id integer,
+  name text NOT NULL,
+  code text,
+  created_at timestamp with time zone DEFAULT now(),
+  state_code text,
+  CONSTRAINT districts_pkey PRIMARY KEY (id),
+  CONSTRAINT districts_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.states(id)
+);
+CREATE TABLE public.dprs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_title text NOT NULL,
+  location text NOT NULL,
+  estimated_cost numeric NOT NULL,
+  submission_date date DEFAULT CURRENT_DATE,
+  status text DEFAULT 'Submitted'::text,
+  file_name text,
+  uploaded_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT dprs_pkey PRIMARY KEY (id),
+  CONSTRAINT dprs_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.executing_agencies (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  agency_name text NOT NULL,
+  agency_type text,
+  registration_no text,
+  address text,
+  contact_number text,
+  email text NOT NULL UNIQUE,
+  state_name text,
+  district_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  name text,
+  phone text,
+  implementing_agency_id uuid,
+  created_by uuid,
+  role text DEFAULT 'Executing Agency'::text,
+  component text DEFAULT 'Infrastructure'::text,
+  work_assigned text,
+  status text DEFAULT 'Active'::text,
+  agency_officer text,
+  CONSTRAINT executing_agencies_pkey PRIMARY KEY (id),
+  CONSTRAINT executing_agencies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT executing_agencies_implementing_agency_id_fkey FOREIGN KEY (implementing_agency_id) REFERENCES auth.users(id),
+  CONSTRAINT executing_agencies_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.fund_allocations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  state_name text NOT NULL,
+  state_code text,
+  scheme_components ARRAY,
+  amount_allocated bigint NOT NULL,
+  amount_released bigint DEFAULT 0,
+  allocation_date date NOT NULL,
+  officer_id text NOT NULL,
+  allocator_name text NOT NULL,
+  allocator_role text NOT NULL,
+  allocator_phone text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT fund_allocations_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.fund_releases (
+  id integer NOT NULL DEFAULT nextval('fund_releases_id_seq'::regclass),
+  district_id integer,
+  component ARRAY,
+  amount_rupees numeric,
+  amount_cr numeric,
+  release_date date,
+  officer_id text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT fund_releases_pkey PRIMARY KEY (id),
+  CONSTRAINT fund_releases_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.districts(id)
+);
+CREATE TABLE public.implementing_agencies (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  agency_name text NOT NULL,
+  agency_type text,
+  registration_no text,
+  address text,
+  contact_number text,
+  email text NOT NULL UNIQUE,
+  state_name text,
+  district_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  district_id integer,
+  state_id integer,
+  state character varying,
+  CONSTRAINT implementing_agencies_pkey PRIMARY KEY (id),
+  CONSTRAINT implementing_agencies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT implementing_agencies_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.districts(id),
+  CONSTRAINT implementing_agencies_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.states(id)
+);
+CREATE TABLE public.implementing_agencies_assignment (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  agency_name character varying NOT NULL,
+  admin_name character varying NOT NULL,
+  phone_no character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  bank_account_number character varying NOT NULL,
+  district_name character varying NOT NULL,
+  status character varying DEFAULT 'Active'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT implementing_agencies_assignment_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_role text NOT NULL CHECK (user_role = ANY (ARRAY['ministry'::text, 'state'::text, 'district'::text, 'gp'::text])),
+  state_name text,
+  district_name text,
+  title text NOT NULL,
+  message text NOT NULL,
+  type text DEFAULT 'info'::text CHECK (type = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'error'::text])),
+  read boolean DEFAULT false,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  email text NOT NULL UNIQUE,
+  role text NOT NULL CHECK (role = ANY (ARRAY['centre_admin'::text, 'state_admin'::text, 'district_admin'::text, 'gp_admin'::text, 'department_admin'::text, 'contractor'::text, 'implementing_agency'::text, 'executing_agency'::text, 'public'::text])),
+  full_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  push_token text,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.proposal_history (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  proposal_id bigint,
+  old_status text,
+  new_status text,
+  changed_by uuid,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT proposal_history_pkey PRIMARY KEY (id),
+  CONSTRAINT proposal_history_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.district_proposals(id)
+);
+CREATE TABLE public.reports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  report_type text NOT NULL,
+  reporting_month text,
+  reporting_year integer,
+  description text,
+  submitted_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT reports_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.state_admins (
+  id uuid NOT NULL,
+  state_id integer UNIQUE,
+  full_name text NOT NULL,
+  designation text DEFAULT 'State Administrator'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT state_admins_pkey PRIMARY KEY (id),
+  CONSTRAINT state_admins_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id),
+  CONSTRAINT state_admins_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.states(id)
+);
+CREATE TABLE public.state_assignment (
+  id bigint NOT NULL DEFAULT nextval('state_assignment_id_seq'::regclass),
+  admin_name character varying NOT NULL,
+  state_name character varying NOT NULL,
+  phone_no character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  bank_account_number character varying NOT NULL,
+  status character varying DEFAULT 'Active'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT state_assignment_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.state_fund_releases (
+  id integer NOT NULL DEFAULT nextval('state_fund_releases_id_seq'::regclass),
+  state_id integer,
+  component ARRAY,
+  amount_rupees numeric,
+  amount_cr numeric,
+  release_date date,
+  sanction_order_no text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT state_fund_releases_pkey PRIMARY KEY (id),
+  CONSTRAINT state_fund_releases_state_id_fkey FOREIGN KEY (state_id) REFERENCES public.states(id)
+);
+CREATE TABLE public.states (
+  id integer NOT NULL DEFAULT nextval('states_id_seq'::regclass),
+  name text NOT NULL UNIQUE,
+  code text NOT NULL UNIQUE,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT states_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.support_tickets (
+  id bigint NOT NULL DEFAULT nextval('support_tickets_id_seq'::regclass),
+  subject text NOT NULL,
+  category text DEFAULT 'General'::text,
+  priority text DEFAULT 'Medium'::text,
+  message text NOT NULL,
+  user_id text,
+  user_role text DEFAULT 'contractor'::text,
+  user_name text,
+  user_email text,
+  status text DEFAULT 'Open'::text,
+  admin_response text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  responded_at timestamp with time zone,
+  resolved_at timestamp with time zone,
+  CONSTRAINT support_tickets_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.uc_submissions (
+  id integer NOT NULL DEFAULT nextval('uc_submissions_id_seq'::regclass),
+  district_id integer,
+  financial_year character varying NOT NULL,
+  fund_released bigint NOT NULL DEFAULT 0,
+  fund_utilized bigint NOT NULL DEFAULT 0,
+  utilization_percent integer DEFAULT 
+CASE
+    WHEN (fund_released > 0) THEN (((fund_utilized * 100) / fund_released))::integer
+    ELSE 0
+END,
+  document_url text,
+  submitted_date date DEFAULT CURRENT_DATE,
+  status character varying DEFAULT 'Pending Verification'::character varying CHECK (status::text = ANY (ARRAY['Pending Verification'::character varying, 'Verified'::character varying, 'Rejected'::character varying]::text[])),
+  verified_by uuid,
+  verification_date date,
+  remarks text,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT uc_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT uc_submissions_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.districts(id),
+  CONSTRAINT uc_submissions_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.village_fund_releases (
+  id integer NOT NULL DEFAULT nextval('village_fund_releases_id_seq'::regclass),
+  village_code text NOT NULL,
+  village_name text NOT NULL,
+  district_name text NOT NULL,
+  state_name text NOT NULL,
+  component ARRAY NOT NULL,
+  amount_allocated numeric NOT NULL DEFAULT 0,
+  amount_released numeric NOT NULL DEFAULT 0,
+  amount_utilized numeric DEFAULT 0,
+  release_date date NOT NULL,
+  sanction_order_no text,
+  released_by uuid,
+  remarks text,
+  status text DEFAULT 'Released'::text CHECK (status = ANY (ARRAY['Released'::text, 'Utilized'::text, 'Pending'::text, 'Completed'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT village_fund_releases_pkey PRIMARY KEY (id),
+  CONSTRAINT village_fund_releases_released_by_fkey FOREIGN KEY (released_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.villages (
+  state_name text,
+  state_code text,
+  district_name text,
+  district_code text,
+  subdistrict_name text,
+  subdistrict_code text,
+  village_name text,
+  village_code text NOT NULL,
+  population_2011 integer,
+  sc_population_pct integer,
+  CONSTRAINT villages_pkey PRIMARY KEY (village_code)
+);
+CREATE TABLE public.work_orders (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  title text NOT NULL,
+  location text,
+  contractor text,
+  amount numeric,
+  date date,
+  deadline date,
+  status text DEFAULT 'Not Started'::text,
+  progress numeric DEFAULT 0,
+  funds_released numeric DEFAULT 0,
+  funds_used numeric DEFAULT 0,
+  funds_remaining numeric DEFAULT 0,
+  remarks text,
+  executing_agency_id uuid,
+  project_fund numeric,
+  proposal_id bigint,
+  implementing_agency_id uuid,
+  assigned_user_role text,
+  assigned_user_responsibilities ARRAY,
+  assigned_user_notes text,
+  CONSTRAINT work_orders_pkey PRIMARY KEY (id),
+  CONSTRAINT work_orders_executing_agency_id_fkey FOREIGN KEY (executing_agency_id) REFERENCES public.executing_agencies(id)
+);
+CREATE TABLE public.work_progress (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  work_order_id bigint NOT NULL,
+  executing_agency_id uuid,
+  officer_name text,
+  officer_phone text,
+  progress_percentage numeric,
+  funds_released numeric DEFAULT 0,
+  funds_used numeric DEFAULT 0,
+  funds_remaining numeric DEFAULT 0,
+  remarks text,
+  viewed_by_agency boolean DEFAULT false,
+  viewed_at timestamp with time zone,
+  photos ARRAY,
+  CONSTRAINT work_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT work_progress_executing_agency_id_fkey FOREIGN KEY (executing_agency_id) REFERENCES auth.users(id)
+);

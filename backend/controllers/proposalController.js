@@ -1,0 +1,711 @@
+﻿const { createClient } = require('@supabase/supabase-js');
+const { sendWhatsAppMessage } = require('../services/NotificationService');
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+exports.createProposal = async (req, res) => {
+    try {
+        const { districtId, projectName, component, estimatedCost, description, phoneNumber } = req.body;
+        const files = req.files;
+
+        if (!districtId || !projectName || !estimatedCost) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+
+        let uploadedDocuments = [];
+
+        // Upload files to Supabase Storage
+        if (files && files.length > 0) {
+            for (const file of files) {
+                const fileName = `${districtId}/${Date.now()}_${file.originalname}`;
+                const { data, error } = await supabase.storage
+                    .from('proposal-documents') // Ensure this bucket exists
+                    .upload(fileName, file.buffer, {
+                        contentType: file.mimetype
+                    });
+
+                if (error) {
+                    console.error('File upload error:', error);
+                    // Continue with other files or fail? Let's log and continue for now.
+                } else {
+                    // Get public URL
+                    const { data: publicUrlData } = supabase.storage
+                        .from('proposal-documents')
+                        .getPublicUrl(fileName);
+
+                    uploadedDocuments.push({
+                        name: file.originalname,
+                        path: data.path,
+                        url: publicUrlData.publicUrl,
+                        type: file.mimetype,
+                        size: file.size
+                    });
+                }
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('district_proposals')
+            .insert([
+                {
+                    district_id: districtId,
+                    project_name: projectName,
+                    component,
+                    estimated_cost: estimatedCost,
+                    description,
+                    phone_number: phoneNumber,
+                    documents: uploadedDocuments,
+                    status: 'SUBMITTED'
+                }
+            ])
+            .select();
+
+        if (error) {
+            console.error('Supabase insert error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        // Get district info to find state
+        const { data: districtData, error: districtError } = await supabase
+            .from('districts')
+            .select('name, state_id')
+            .eq('id', districtId)
+            .single();
+
+        if (!districtError && districtData) {
+            // Get state info
+            const { data: stateData, error: stateError } = await supabase
+                .from('states')
+                .select('name')
+                .eq('id', districtData.state_id)
+                .single();
+
+            if (!stateError && stateData) {
+                // Create notification for State Admin
+                const notificationData = {
+                    user_role: 'state',
+                    state_name: stateData.name,
+                    title: 'New Proposal Received',
+                    message: `New proposal "${projectName}" submitted by ${districtData.name} district for ${component} component (₹${estimatedCost} Lakhs)`,
+                    type: 'info',
+                    read: false,
+                    metadata: {
+                        proposal_id: data[0].id,
+                        district_id: districtId,
+                        district_name: districtData.name,
+                        project_name: projectName,
+                        component: component,
+                        estimated_cost: estimatedCost
+                    }
+                };
+
+                const { error: notifError } = await supabase
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (notifError) {
+                    console.error('Failed to create notification:', notifError);
+                    // Don't fail the request, just log it
+                } else {
+                    console.log('✅ Notification created for state:', stateData.name);
+                }
+            }
+        }
+
+        res.json({ success: true, message: 'Proposal submitted successfully', data: data[0] });
+    } catch (error) {
+        console.error('Error creating proposal:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.getProposalsByDistrict = async (req, res) => {
+    try {
+        const { districtId } = req.params;
+
+        const { data, error } = await supabase
+            .from('district_proposals')
+            .select('*')
+            .eq('district_id', districtId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Supabase select error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error('Error fetching proposals:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.getProposalsByState = async (req, res) => {
+    try {
+        const { stateName } = req.query;
+
+        if (!stateName) {
+            return res.status(400).json({ success: false, error: 'State name is required' });
+        }
+
+        // 1. Get State ID
+        const { data: stateData, error: stateError } = await supabase
+            .from('states')
+            .select('id')
+            .eq('name', stateName)
+            .single();
+
+        if (stateError || !stateData) {
+            return res.status(404).json({ success: false, error: 'State not found' });
+        }
+
+        // 2. Get Districts in State
+        const { data: districtsData, error: districtsError } = await supabase
+            .from('districts')
+            .select('id, name')
+            .eq('state_id', stateData.id);
+
+        if (districtsError) {
+            return res.status(500).json({ success: false, error: districtsError.message });
+        }
+
+        const districtIds = districtsData.map(d => d.id);
+
+        if (districtIds.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+
+        // 3. Get Proposals for these Districts
+        const { data: proposals, error: proposalsError } = await supabase
+            .from('district_proposals')
+            .select('*')
+            .in('district_id', districtIds)
+            .order('created_at', { ascending: false });
+
+        if (proposalsError) {
+            return res.status(500).json({ success: false, error: proposalsError.message });
+        }
+
+        // Map district names to proposals
+        const districtMap = districtsData.reduce((acc, d) => {
+            acc[d.id] = d.name;
+            return acc;
+        }, {});
+
+        const enrichedProposals = proposals.map(p => ({
+            ...p,
+            district_name: districtMap[p.district_id]
+        }));
+
+        res.json({ success: true, data: enrichedProposals });
+
+    } catch (error) {
+        console.error('Error fetching state proposals:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.getMinistryProposals = async (req, res) => {
+    try {
+        // 1. Fetch proposals
+        const { data: proposals, error } = await supabase
+            .from('district_proposals')
+            .select('*')
+            .in('status', ['APPROVED_BY_STATE', 'APPROVED_BY_MINISTRY', 'REJECTED_BY_MINISTRY'])
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Supabase select error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        if (!proposals || proposals.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+
+        // 2. Get unique District IDs
+        const districtIds = [...new Set(proposals.map(p => p.district_id))];
+
+        // 3. Fetch Districts
+        const { data: districts, error: distError } = await supabase
+            .from('districts')
+            .select('id, name, state_id')
+            .in('id', districtIds);
+
+        if (distError) {
+            throw distError;
+        }
+
+        // 4. Get unique State IDs
+        const stateIds = [...new Set(districts.map(d => d.state_id))];
+
+        // 5. Fetch States
+        const { data: states, error: stateError } = await supabase
+            .from('states')
+            .select('id, name')
+            .in('id', stateIds);
+
+        if (stateError) {
+            throw stateError;
+        }
+
+        // 6. Create Maps for easy lookup
+        const stateMap = states.reduce((acc, s) => {
+            acc[s.id] = s.name;
+            return acc;
+        }, {});
+
+        const districtMap = districts.reduce((acc, d) => {
+            acc[d.id] = {
+                name: d.name,
+                stateName: stateMap[d.state_id]
+            };
+            return acc;
+        }, {});
+
+        // 7. Merge data
+        const flattenedProposals = proposals.map(p => ({
+            ...p,
+            district_name: districtMap[p.district_id]?.name || 'Unknown District',
+            state_name: districtMap[p.district_id]?.stateName || 'Unknown State'
+        }));
+
+        res.json({ success: true, data: flattenedProposals });
+    } catch (error) {
+        console.error('Error fetching ministry proposals:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.updateProposalStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, rejectReason, remarks, userId, allocatedAmount } = req.body;
+
+        console.log(`📝 Update Proposal Status: ID=${id}, Status=${status}`);
+        console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
+
+        // 1. Get current status
+        const { data: currentProposal, error: fetchError } = await supabase
+            .from('district_proposals')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError) {
+            console.error('Error fetching proposal:', fetchError);
+            return res.status(404).json({ success: false, error: 'Proposal not found' });
+        }
+
+        const updateData = { status };
+        if (rejectReason) {
+            updateData.reject_reason = rejectReason;
+        }
+        if (remarks) {
+            updateData.remarks = remarks;
+        }
+        if (status.includes('APPROVED')) {
+            updateData.approved_at = new Date().toISOString();
+            if (userId) updateData.approved_by = userId;
+            // Save allocated amount to district_proposals if provided
+            if (allocatedAmount) {
+                updateData.allocated_amount = parseFloat(allocatedAmount);
+            }
+        }
+
+        let notificationSent = false;
+
+        // 2. Update Proposal
+        const { data, error } = await supabase
+            .from('district_proposals')
+            .update(updateData)
+            .eq('id', id)
+            .select();
+
+        if (error) {
+            console.error('Supabase update error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        // 2.1 If Approved by Ministry, insert into approved_projects table
+        if (status === 'APPROVED_BY_MINISTRY' && allocatedAmount) {
+            console.log('🚀 Attempting to insert into approved_projects...');
+            try {
+                // Fetch district and state names explicitly
+                let districtName = 'Unknown';
+                let stateName = 'Unknown';
+
+                if (currentProposal.district_id) {
+                    const { data: districtInfo } = await supabase
+                        .from('districts')
+                        .select('name, states(name)')
+                        .eq('id', currentProposal.district_id)
+                        .single();
+
+                    if (districtInfo) {
+                        districtName = districtInfo.name;
+                        stateName = districtInfo.states?.name || 'Unknown';
+                    }
+                }
+
+                const { error: approvalError } = await supabase
+                    .from('approved_projects')
+                    .insert([{
+                        proposal_id: id,
+                        state_name: stateName,
+                        district_name: districtName,
+                        project_name: currentProposal.project_name,
+                        component: currentProposal.component,
+                        estimated_cost: currentProposal.estimated_cost,
+                        allocated_amount: parseFloat(allocatedAmount),
+                        total_amount: parseFloat(allocatedAmount),
+                        minimum_allocation: parseFloat(allocatedAmount),
+                        released_amount: 0,
+                        remaining_fund: parseFloat(allocatedAmount),
+                        approved_at: new Date().toISOString()
+                    }]);
+
+                if (approvalError) {
+                    console.error('Error inserting into approved_projects:', approvalError);
+                } else {
+                    console.log('✅ Project added to approved_projects table');
+                }
+            } catch (err) {
+                console.error('Exception inserting into approved_projects:', err);
+            }
+        }
+
+        // 3. Insert into History
+        const { error: historyError } = await supabase
+            .from('proposal_history')
+            .insert([
+                {
+                    proposal_id: id,
+                    old_status: currentProposal.status,
+                    new_status: status,
+                    changed_by: userId || null,
+                    remarks: rejectReason || remarks || ''
+                }
+            ]);
+
+        if (historyError) {
+            console.error('Error logging history:', historyError);
+            // Don't fail the request just because history failed, but log it
+        }
+
+        // 4. Create notification for District Admin when approved/rejected by state
+        if (status === 'APPROVED_BY_STATE' || status === 'REJECTED_BY_STATE') {
+            try {
+                // Get full proposal details with district info
+                const { data: proposalData, error: proposalError } = await supabase
+                    .from('district_proposals')
+                    .select('project_name, estimated_cost, component, district_id, phone_number')
+                    .eq('id', id)
+                    .single();
+
+                if (!proposalError && proposalData) {
+                    // Get district name
+                    const { data: districtData, error: districtError } = await supabase
+                        .from('districts')
+                        .select('name, state_id')
+                        .eq('id', proposalData.district_id)
+                        .single();
+
+                    if (!districtError && districtData) {
+                        console.log('District data found:', districtData);
+                        const isApproved = status === 'APPROVED_BY_STATE';
+                        console.log(`Debug: Update Status - ID: ${id}, Status: ${status}, IsApproved: ${isApproved}`);
+                        console.log(`Debug: Fetched Proposal Data:`, JSON.stringify(proposalData, null, 2));
+
+                        if (isApproved && !proposalData.phone_number) {
+                            console.warn('⚠️ APPROVED but No phone number found in proposalData!');
+                        }
+
+                        // 1. Notification for District Admin
+                        const notificationData = {
+                            user_role: 'district',
+                            district_name: districtData.name,
+                            title: isApproved ? 'Proposal Approved by State' : 'Proposal Rejected by State',
+                            message: isApproved
+                                ? `Your proposal "${proposalData.project_name}" for ${proposalData.component} (₹${proposalData.estimated_cost} Lakhs) has been approved by the State Government!`
+                                : `Your proposal "${proposalData.project_name}" has been rejected. Reason: ${rejectReason || 'Not specified'}`,
+                            type: isApproved ? 'success' : 'error',
+                            read: false,
+                            metadata: {
+                                proposal_id: id,
+                                project_name: proposalData.project_name,
+                                component: proposalData.component,
+                                estimated_cost: proposalData.estimated_cost,
+                                status: status,
+                                reject_reason: rejectReason || null
+                            }
+                        };
+
+                        const { error: notifError } = await supabase
+                            .from('notifications')
+                            .insert([notificationData]);
+
+                        if (notifError) {
+                            console.error('Failed to create notification:', notifError);
+                        } else {
+                            console.log(`✅ Notification created for district: ${districtData.name} (${isApproved ? 'Approved' : 'Rejected'})`);
+                        }
+
+                        // 2. Notification for Ministry (Only on Approval)
+                        if (isApproved) {
+                            // Fetch State Name
+                            const { data: stateData, error: stateError } = await supabase
+                                .from('states')
+                                .select('name')
+                                .eq('id', districtData.state_id)
+                                .single();
+
+                            const stateName = stateData ? stateData.name : 'State Government';
+
+                            const ministryNotification = {
+                                user_role: 'ministry', // Target the Ministry Dashboard (Database constraint requires 'ministry')
+                                state_name: stateName,
+                                title: 'Project Approved in State Gov',
+                                message: `Project "${proposalData.project_name}" in ${districtData.name} (${stateName}) has been approved by the State Government.`,
+                                type: 'success',
+                                read: false,
+                                metadata: {
+                                    proposal_id: id,
+                                    project_name: proposalData.project_name,
+                                    district_name: districtData.name,
+                                    state_name: stateName,
+                                    component: proposalData.component,
+                                    estimated_cost: proposalData.estimated_cost,
+                                    approved_at: new Date().toISOString()
+                                }
+                            };
+
+                            const { error: ministryNotifError } = await supabase
+                                .from('notifications')
+                                .insert([ministryNotification]);
+
+                            if (ministryNotifError) {
+                                console.error('Failed to created ministry notification:', ministryNotifError);
+                            } else {
+                                console.log(`✅ Notification created for Ministry: ${proposalData.project_name}`);
+                            }
+                        }
+
+                        // 3. WhatsApp Notification for District Admin (Approvals only)
+                        if (isApproved && proposalData.phone_number) {
+                            console.log(`📱 Sending WhatsApp notification to District Admin (${districtData.name}) at ${proposalData.phone_number}`);
+
+                            const message = 'Your file has been approved by the State Government. Proposal "' + proposalData.project_name + '" (Component: ' + proposalData.component + ') from ' + districtData.name + ' district has been approved and forwarded to the Ministry. - PM-AJAY Portal';
+
+                            const sent = await sendWhatsAppMessage(proposalData.phone_number, {
+                                message_body: message,
+                                broadcast_name: 'State Approval Notification'
+                            });
+
+                            if (sent) notificationSent = true;
+                        }
+                    }
+                }
+            } catch (notifErr) {
+                console.error('Error creating notification:', notifErr);
+            }
+        }
+
+        // 5. Create notification for District Admin when approved/rejected by Ministry
+        if (status === 'APPROVED_BY_MINISTRY' || status === 'REJECTED_BY_MINISTRY') {
+            try {
+                // Get full proposal details with district info
+                const { data: proposalData, error: proposalError } = await supabase
+                    .from('district_proposals')
+                    .select('project_name, estimated_cost, component, district_id, phone_number')
+                    .eq('id', id)
+                    .single();
+
+                if (!proposalError && proposalData) {
+                    // Get district name and state info
+                    const { data: districtData, error: districtError } = await supabase
+                        .from('districts')
+                        .select('name, state_id')
+                        .eq('id', proposalData.district_id)
+                        .single();
+
+                    if (!districtError && districtData) {
+                        const isApproved = status === 'APPROVED_BY_MINISTRY';
+                        console.log('Ministry decision - District:', districtData.name, 'Approved?', isApproved);
+
+                        // Create notification for District Admin
+                        const districtNotification = {
+                            user_role: 'district',
+                            district_name: districtData.name,
+                            title: isApproved ? 'Proposal Approved by Ministry' : 'Proposal Rejected by Ministry',
+                            message: isApproved
+                                ? `Your proposal "${proposalData.project_name}" for ${proposalData.component} (₹${proposalData.estimated_cost} Lakhs) has been approved by the Ministry of Social Justice & Empowerment!`
+                                : `Your proposal "${proposalData.project_name}" has been rejected by the Ministry. Reason: ${rejectReason || 'Not specified'}`,
+                            type: isApproved ? 'success' : 'error',
+                            read: false,
+                            metadata: {
+                                proposal_id: id,
+                                project_name: proposalData.project_name,
+                                component: proposalData.component,
+                                estimated_cost: proposalData.estimated_cost,
+                                status: status,
+                                reject_reason: rejectReason || null,
+                                approved_by: 'Ministry'
+                            }
+                        };
+
+                        const { error: notifError } = await supabase
+                            .from('notifications')
+                            .insert([districtNotification]);
+
+                        if (notifError) {
+                            console.error('Failed to create district notification for ministry decision:', notifError);
+                        } else {
+                            console.log(`✅ District notification created: ${districtData.name} - Ministry ${isApproved ? 'Approved' : 'Rejected'} "${proposalData.project_name}"`);
+                        }
+
+                        // Send WhatsApp notifications for Ministry approvals
+                        if (isApproved && proposalData.phone_number) {
+                            // Get state name
+                            const { data: stateData, error: stateError } = await supabase
+                                .from('states')
+                                .select('name')
+                                .eq('id', districtData.state_id)
+                                .single();
+
+                            const stateName = stateData ? stateData.name : 'your state';
+
+                            // Send WhatsApp to District Officer
+                            console.log(`📱 Sending WhatsApp notification to District Admin (${districtData.name}, ${stateName}) at ${proposalData.phone_number}`);
+
+                            const districtMessage = 'Your file has been approved by the Ministry. Proposal "' + proposalData.project_name + '" (Component: ' + proposalData.component + ') from ' + districtData.name + ' district, ' + stateName + ' has been APPROVED by the Ministry of Social Justice and Empowerment. - PM-AJAY Portal';
+
+                            const sent = await sendWhatsAppMessage(proposalData.phone_number, {
+                                message_body: districtMessage,
+                                broadcast_name: 'Ministry Approval - District Notification'
+                            });
+
+                            if (sent) notificationSent = true;
+
+                            // Send WhatsApp to State Officer - fetch from state_admins table
+                            console.log(`🔍 Looking up state admin for: "${stateName}"`);
+
+                            const { data: stateAdminData, error: stateAdminError } = await supabase
+                                .from('state_assignment')
+                                .select('phone_no, admin_name')
+                                .eq('state_name', stateName)
+                                .eq('status', 'Activated')
+                                .single();
+
+                            if (!stateAdminError && stateAdminData && stateAdminData.phone_no) {
+                                console.log(`📱 Sending WhatsApp notification to State Admin (${stateName}) - ${stateAdminData.admin_name} at ${stateAdminData.phone_no}`);
+
+                                const stateMessage = 'Your file has been approved by the Ministry. Proposal "' + proposalData.project_name + '" (Component: ' + proposalData.component + ') from ' + districtData.name + ' district in your state has been APPROVED by the Ministry. - PM-AJAY Portal';
+
+                                await sendWhatsAppMessage(stateAdminData.phone_no, {
+                                    message_body: stateMessage,
+                                    broadcast_name: 'Ministry Approval - State Notification'
+                                });
+                            } else {
+                                console.warn(`⚠️ No activated state admin found for: "${stateName}"`);
+                            }
+                        }
+                    }
+                }
+            } catch (notifErr) {
+                console.error('Error creating notification for ministry decision:', notifErr);
+                // Don't fail the request, just log it
+            }
+        }
+
+        res.json({ success: true, message: 'Proposal status updated', data: data[0], notificationSent });
+
+    } catch (error) {
+        console.error('Error updating proposal status:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+// Get approved projects for fund release
+exports.getApprovedProjects = async (req, res) => {
+    try {
+        // Fetch approved projects from approved_projects table
+        // Join with district_proposals to get implementing_agency_id and agency details
+        const { data: projects, error } = await supabase
+            .from('approved_projects')
+            .select(`
+                *,
+                district_proposals (
+                    implementing_agency_id,
+                    implementing_agencies (
+                        id,
+                        agency_name
+                    )
+                )
+            `)
+            .order('approved_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching approved projects:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        // Format the data for frontend
+        const formattedProjects = projects.map(p => ({
+            id: p.proposal_id, // Use proposal_id as the main ID for frontend
+            approvedProjectId: p.id,
+            projectName: p.project_name,
+            component: p.component,
+            estimatedCost: p.estimated_cost,
+            allocatedAmount: p.allocated_amount,
+            minimumAllocation: p.minimum_allocation || p.allocated_amount,
+            districtName: p.district_name || 'Unknown',
+            stateName: p.state_name || 'Unknown',
+            approvedAt: p.approved_at,
+            releasedAmount: p.released_amount || 0,
+            remainingAmount: Math.max(0, (p.allocated_amount || 0) - (p.released_amount || 0)),
+            // Agency details from the joined proposal
+            implementingAgencyId: p.district_proposals?.implementing_agency_id || null,
+            implementingAgencyName: p.district_proposals?.implementing_agencies?.agency_name || null
+        }));
+
+        res.json({ success: true, data: formattedProjects });
+
+    } catch (error) {
+        console.error('Error fetching approved projects:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.assignImplementingAgency = async (req, res) => {
+    try {
+        const { id } = req.params; // Proposal ID
+        const { implementingAgencyId } = req.body;
+
+        if (!implementingAgencyId) {
+            return res.status(400).json({ success: false, error: 'Implementing Agency ID is required' });
+        }
+
+        console.log(`🔗 Assigning Agency ${implementingAgencyId} to Proposal ${id}`);
+
+        // Update district_proposals table
+        const { data, error } = await supabase
+            .from('district_proposals')
+            .update({ implementing_agency_id: implementingAgencyId })
+            .eq('id', id)
+            .select();
+
+        if (error) {
+            console.error('Error assigning agency:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        res.json({ success: true, message: 'Agency assigned successfully', data: data[0] });
+
+    } catch (error) {
+        console.error('Error in assignImplementingAgency:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

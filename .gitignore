@@ -1,0 +1,67 @@
+# Environment variables
+.env
+.env.local
+.env.production
+backend/.env
+backend/.env.local
+backend/.env.production
+mobile-app/.env
+mobile-app/.env.local
+mobile-app/.env.production
+# Credentials (NEVER commit these!)
+CREDENTIALS_REFERENCE.md
+*credentials*.txt
+*passwords*.txt
+temp_key.txt
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# CSV files with sensitive data
+CSV_IMPORTS/*.csv
+
+# Scripts with potential secrets
+scripts/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Database dumps
+*.sql.backup
+*.dump
+
+# Backend temporary/debug files
+backend/*debug*.js
+backend/*debug*.sql
+backend/*test*.js
+backend/*check*.js
+backend/*find*.js
+backend/*get*.js
+backend/*temp*.js

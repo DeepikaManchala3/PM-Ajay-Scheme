@@ -1,0 +1,225 @@
+/* Card Container Styling */
+.portal-features-card {
+    background: white;
+    border-radius: 12px;
+    padding: 3.5rem 3rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Heading Pill Styling */
+.portal-features-heading {
+    text-align: center;
+    margin-bottom: 3rem;
+    font-size: 1.5rem;
+    color: white;
+    font-weight: 600;
+    background-color: #000080;
+    display: inline-block;
+    padding: 0.5rem 2rem;
+    border-radius: 9999px;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Timeline Container */
+.portal-features-timeline {
+    position: relative;
+    padding-top: 3rem;
+}
+
+/* The vertical curved line */
+.portal-features-timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 25px;
+    left: 253px;
+    width: 2px;
+    background: var(--color-navy);
+    opacity: 100;
+    border-radius: 2px;
+}
+
+/* Start Dot for the timeline */
+.portal-features-timeline::after {
+    content: '';
+    position: absolute;
+    left: 245px;
+    /* 250px - 6px (half width) */
+    top: 0;
+    width: 19px;
+    height: 19px;
+    background: var(--color-navy);
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: 0 0 0 4px rgba(0, 0, 128, 0.1);
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 3rem;
+    position: relative;
+    opacity: 0;
+    animation: fadeInSlide 0.5s ease forwards;
+}
+
+/* Staggered animation delays */
+.feature-item:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.feature-item:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.feature-item:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.feature-item:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.feature-item:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+.feature-item:nth-child(6) {
+    animation-delay: 0.6s;
+}
+
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.feature-heading-wrapper {
+    width: 230px;
+    padding-right: 30px;
+    text-align: right;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.feature-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.3s ease;
+}
+
+.feature-icon {
+    font-size: 1.5rem;
+}
+
+.feature-item:hover .feature-title {
+    transform: translateX(-5px);
+}
+
+/* Dot on the vertical line for each item */
+.feature-heading-wrapper::after {
+    content: '';
+    position: absolute;
+    left: 246px;
+    width: 11px;
+    height: 11px;
+    background: white;
+    border: 3px solid var(--color-gray-300);
+    border-radius: 50%;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover .feature-heading-wrapper::after {
+    background: var(--color-navy);
+    border-color: white;
+    box-shadow: 0 0 0 4px rgba(0, 0, 128, 0.2);
+    transform: scale(1.2);
+}
+
+.feature-content-card {
+    flex: 1;
+    background: white;
+    padding: 1.25rem 2rem;
+    border-radius: 50px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-gray-100);
+    transition: all 0.3s ease;
+    margin-left: 30px;
+}
+
+.feature-item:hover .feature-content-card {
+    transform: translateX(5px);
+    box-shadow: 0 0 15px 3px rgba(30, 30, 231, 0.2);
+    border-color: 0.55px solid var(--color-navy);
+}
+
+.feature-desc {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .portal-features-card {
+        padding: 2rem 1rem;
+    }
+
+    .portal-features-timeline::before {
+        left: 20px;
+        top: 0;
+    }
+
+    .portal-features-timeline::after {
+        left: 14px;
+        top: 0;
+    }
+
+    .feature-item {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+
+    .feature-heading-wrapper {
+        width: 100%;
+        text-align: left;
+        padding-left: 40px;
+        padding-right: 0;
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-heading-wrapper::after {
+        left: 16px;
+    }
+
+    .feature-content-card {
+        margin-left: 40px;
+        width: calc(100% - 40px);
+        flex: none;
+        border-radius: 20px;
+        padding: 1rem;
+    }
+}
