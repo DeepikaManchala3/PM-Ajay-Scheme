@@ -11,23 +11,17 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    minify: false, // Disables memory-intensive minification phase
+    minify: false,
     cssCodeSplit: false,
     chunkSizeWarningLimit: 3000,
-    maxParallelFileOps: 1, // Restricts build process to single thread to save RAM
+    maxParallelFileOps: 1,
     rollupOptions: {
       external: [
-        'recharts',
-        'jspdf',
-        'leaflet',
-        'react-leaflet',
+        'jspdf', // Keep jspdf external if loaded via CDN, otherwise remove it too
       ],
       output: {
         globals: {
-          recharts: 'Recharts',
           jspdf: 'jsPDF',
-          leaflet: 'L',
-          'react-leaflet': 'ReactLeaflet',
         },
       },
     },
