@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -10,8 +11,10 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    minify: false, // Prevents high RAM consumption during chunk minification
+    minify: false, // Disables memory-intensive minification phase
+    cssCodeSplit: false,
     chunkSizeWarningLimit: 3000,
+    maxParallelFileOps: 1, // Restricts build process to single thread to save RAM
     rollupOptions: {
       external: [
         'recharts',
