@@ -4,9 +4,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    sourcemap: false,
+    target: 'esnext',
     minify: 'esbuild',
-    cssCodeSplit: true,
-    chunkSizeWarningLimit: 4000
+    cssCodeSplit: false,
+    chunkSizeWarningLimit: 5000,
+    rollupOptions: {
+      maxParallelFileOps: 1
+    }
   }
 })
