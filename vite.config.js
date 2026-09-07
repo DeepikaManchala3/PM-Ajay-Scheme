@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -11,19 +10,20 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    minify: false,
-    cssCodeSplit: false,
-    chunkSizeWarningLimit: 3000,
-    maxParallelFileOps: 1,
+    minify: 'esbuild',
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
-      external: [
-        'jspdf', // Keep jspdf external if loaded via CDN, otherwise remove it too
-      ],
       output: {
-        globals: {
-          jspdf: 'jsPDF',
-        },
-      },
-    },
-  },
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts')) return 'vendor-recharts';
+            if (id.includes('leaflet') || id.includes('react-leaflet')) return 'vendor-maps';
+            if (id.includes('jspdf')) return 'vendor-pdf';
+            return 'vendor-core';
+          }
+        }
+      }
+    }
+  }
 })
