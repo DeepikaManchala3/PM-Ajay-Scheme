@@ -10,9 +10,15 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    chunkSizeWarningLimit: 2000,
+    minify: false, // Prevents high RAM consumption during chunk minification
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
-      external: ['recharts', 'jspdf', 'leaflet', 'react-leaflet'],
+      external: [
+        'recharts',
+        'jspdf',
+        'leaflet',
+        'react-leaflet',
+      ],
       output: {
         globals: {
           recharts: 'Recharts',
