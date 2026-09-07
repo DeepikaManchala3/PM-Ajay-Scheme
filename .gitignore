@@ -65,3 +65,5 @@ backend/*check*.js
 backend/*find*.js
 backend/*get*.js
 backend/*temp*.js
+.vercel
+.env*
