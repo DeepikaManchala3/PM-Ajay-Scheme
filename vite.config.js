@@ -10,15 +10,15 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    minify: 'esbuild',
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
+      external: ['recharts', 'jspdf', 'leaflet', 'react-leaflet'],
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // Return the specific package name to prevent single large chunks
-            return id.toString().split('node_modules/')[1].split('/')[0].toString();
-          }
+        globals: {
+          recharts: 'Recharts',
+          jspdf: 'jsPDF',
+          leaflet: 'L',
+          'react-leaflet': 'ReactLeaflet',
         },
       },
     },
