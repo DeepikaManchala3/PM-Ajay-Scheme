@@ -5,16 +5,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     target: 'esnext',
-    sourcemap: false,
     minify: 'esbuild',
+    sourcemap: false,
     cssCodeSplit: false,
-    reportCompressedSize: false,
     chunkSizeWarningLimit: 5000,
     rollupOptions: {
-      maxParallelFileOps: 1,
-      output: {
-        manualChunks: undefined
-      }
+      maxParallelFileOps: 1
     }
   }
 })
