@@ -10,27 +10,14 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    chunkSizeWarningLimit: 1600,
-    // Reduces memory spikes during chunk generation
-    maxParallelFileOps: 1, 
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Split heavy packages into isolated chunks
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
-            }
-            if (id.includes('lodash') || id.includes('date-fns') || id.includes('axios')) {
-              return 'vendor-utils';
-            }
-            return 'vendor-core';
+            // Return the specific package name to prevent single large chunks
+            return id.toString().split('node_modules/')[1].split('/')[0].toString();
           }
         },
       },
