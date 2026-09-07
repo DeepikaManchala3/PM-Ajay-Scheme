@@ -3,17 +3,13 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    host: true,
-    port: 5173,
-    strictPort: false,
-  },
   build: {
     sourcemap: false,
     minify: 'esbuild',
-    cssCodeSplit: true,
-    chunkSizeWarningLimit: 2000,
+    cssCodeSplit: false,
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
+      maxParallelFileOps: 1,
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
