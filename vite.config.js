@@ -5,11 +5,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true, // Listen on all addresses
+    host: true,
     port: 5173,
-    strictPort: false, // Allow fallback to next port if 5173 is busy
+    strictPort: false,
   },
   build: {
+    sourcemap: false, // Prevents memory spikes from sourcemap generation
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
