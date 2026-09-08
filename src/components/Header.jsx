@@ -147,6 +147,23 @@ const Header = () => {
                                     </li>
                                 ))}
 
+                                <li className="nav-item">
+                                    <Link
+                                        to="/public-demo"
+                                        className="nav-link"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.12)',
+                                            border: '1px solid rgba(255, 255, 255, 0.35)',
+                                            borderRadius: 'var(--radius-sm)',
+                                            margin: '0 var(--space-2)',
+                                            padding: 'var(--space-2) var(--space-3)'
+                                        }}
+                                    >
+                                        🚀 Demo
+                                    </Link>
+                                </li>
+
                                 {isAuthenticated ? (
                                     <li className="nav-item nav-user-info">
                                         <span className="nav-link" style={{ cursor: 'default' }}>

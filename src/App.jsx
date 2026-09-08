@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import RegisterAgency from './pages/RegisterAgency';
 import ChatAssistant from './pages/ChatAssistant';
 import DashboardRouter from './pages/dashboards/DashboardRouter';
+import PublicDemoPortal, { PublicDemoDetail } from './pages/PublicDemoPortal';
 
 import './index.css';
 
@@ -42,7 +43,8 @@ const AppLayout = ({ children }) => {
     const { user } = useAuth();
 
     // Hide global header on dashboard for PUBLIC users, Ministry users, State users, District users, Department users, Implementing Agencies, and Executing Agencies (who have custom header)
-    const shouldHideHeader = location.pathname === '/dashboard' && (
+    const isDashboardRoute = location.pathname === '/dashboard' || location.pathname.startsWith('/public-demo/');
+    const shouldHideHeader = isDashboardRoute && (
         user?.role === ROLES.PUBLIC ||
         user?.role === ROLES.MINISTRY ||
         user?.role === ROLES.STATE ||
@@ -77,6 +79,8 @@ function App() {
                             <Route path="/login" element={<Login />} />
                             <Route path="/register-agency" element={<RegisterAgency />} />
                             <Route path="/chat" element={<ChatAssistant />} />
+                            <Route path="/public-demo" element={<PublicDemoPortal />} />
+                            <Route path="/public-demo/:category/:entityId" element={<PublicDemoDetail />} />
 
                             {/* Protected Routes */}
                             <Route

@@ -51,6 +51,23 @@ const StateDashboard = () => {
     React.useEffect(() => {
         const fetchStateName = async () => {
             if (user?.id) {
+                if (user.demoStateName) {
+                    setStateName(user.demoStateName);
+                    try {
+                        const { data: publicState } = await (await import('../../lib/supabaseClient')).supabase
+                            .from('states')
+                            .select('id, code')
+                            .eq('name', user.demoStateName)
+                            .single();
+                        if (publicState) {
+                            setStateId(publicState.id);
+                            setStateCode(publicState.code);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching public state details:', error);
+                    }
+                    return;
+                }
                 console.log('Fetching state name for user:', user.email);
                 try {
                     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
