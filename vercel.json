@@ -1,4 +1,7 @@
 {
+  "framework": "vite",
+  "buildCommand": "NODE_OPTIONS=--max-old-space-size=6144 npm run build",
+  "installCommand": "npm install",
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
